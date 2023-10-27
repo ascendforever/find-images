@@ -49,19 +49,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
         args.extensions.iter().map(|s| s.as_str()).collect()
     };
 
-    let mut registry: Vec<PathBuf> = Vec::new();
+    let mut registry: Vec<(std::fs::Metadata,PathBuf)> = Vec::new();
 
     args.targets.into_iter().map(|target| Path::new(&target).to_path_buf() ).for_each(
-        |path| if path.is_file() {
-            register_file_if_image(&mut registry, path, &valid_extensions);
-        } else if path.is_dir() {
-            register_dir(&mut registry, path, &valid_extensions, args.dohidden);
+        |path| {
+            if path.is_file() {
+                if let Ok(metadata) = std::fs::metadata(&path) { // intentionally not symlink_metadata
+                    register_file(&mut registry, path, metadata, &valid_extensions);
+                }
+            } else if path.is_dir() {
+                register_dir(&mut registry, path, &valid_extensions, args.dohidden);
+            }
         }
     );
 
     if !args.no_sort {
-        registry.sort_by_key(|entry| {
-            entry.metadata().ok().and_then(|meta| meta.modified().ok()).unwrap_or_else(
+        registry.sort_by_key(|(meta,_)| {
+            meta.modified().ok().unwrap_or_else(
                 || std::time::SystemTime::UNIX_EPOCH,
             )
         });
@@ -71,22 +75,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
     let mut stdout_buffer = std::io::BufWriter::new(stdout.lock());
 
     if args.null {
-        if args.quote { for file in registry { write!(stdout_buffer, "{}\0", shlex::quote(&file.to_string_lossy()))?; } }
-        else          { for file in registry { write!(stdout_buffer, "{}\0",              &file.to_string_lossy() )?;  } }
+        if args.quote { for (_,file) in registry { write!(stdout_buffer, "{}\0", shlex::quote(&file.to_string_lossy()))?; } }
+        else          { for (_,file) in registry { write!(stdout_buffer, "{}\0",              &file.to_string_lossy() )?;  } }
     } else {
-        if args.quote { for file in registry { writeln!(stdout_buffer, "{}", shlex::quote(&file.to_string_lossy()))?; } }
-        else          { for file in registry { writeln!(stdout_buffer, "{}",              &file.to_string_lossy() )?;  } }
+        if args.quote { for (_,file) in registry { writeln!(stdout_buffer, "{}", shlex::quote(&file.to_string_lossy()))?; } }
+        else          { for (_,file) in registry { writeln!(stdout_buffer, "{}",              &file.to_string_lossy() )?;  } }
     }
 
     Ok(())
 }
 
-fn register_file_if_image(registry: &mut Vec<PathBuf>, path: PathBuf, valid_extensions: &HashSet<&str>) {
+fn register_file(registry: &mut Vec<(std::fs::Metadata,PathBuf)>, path: PathBuf, metadata: std::fs::Metadata, valid_extensions: &HashSet<&str>) {
     if let Some(osstr_ext) = path.extension() {
         match osstr_ext.to_str() {
             Some(ext) => {
                 if valid_extensions.contains(ext) {
-                    registry.push(path);
+                    registry.push((metadata,path));
                 }
             },
             None => eprintln!(
@@ -98,10 +102,10 @@ fn register_file_if_image(registry: &mut Vec<PathBuf>, path: PathBuf, valid_exte
     }
 }
 
-fn register_dir(registry: &mut Vec<PathBuf>, path: PathBuf, valid_extensions: &HashSet<&str>, dohidden: bool) {
+fn register_dir(registry: &mut Vec<(std::fs::Metadata,PathBuf)>, path: PathBuf, valid_extensions: &HashSet<&str>, dohidden: bool) {
     if let Ok(entries) = std::fs::read_dir(path) {
         for path in entries.filter_map(|e| e.ok() ).map(|e| e.path() ) {
-            if !dohidden && path.file_name().map(|name| name.to_string_lossy().starts_with('.')).unwrap_or(false) {
+            if !dohidden && path.file_name().map(|name| name.to_string_lossy().starts_with('.')).unwrap_or(true) { // this unwraps to None if the file_name is .. or is root / (neither of which would happen in this scenario)
                 continue
             }
             if let Ok(metadata) = std::fs::symlink_metadata(&path) {
@@ -109,9 +113,9 @@ fn register_dir(registry: &mut Vec<PathBuf>, path: PathBuf, valid_extensions: &H
                     continue
                 }
                 if path.is_file() {
-                    register_file_if_image(registry, path, valid_extensions);
+                    register_file(registry, path, metadata, &valid_extensions)
                 } else if path.is_dir() {
-                    register_dir(registry, path, valid_extensions, dohidden);
+                    register_dir(registry, path, &valid_extensions, dohidden);
                 }
             }
         }
