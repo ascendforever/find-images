@@ -1,9 +1,10 @@
 extern crate chrono;
 extern crate shlex;
 extern crate structopt;
+use crate::structopt::StructOpt;
+use std::collections::HashSet;
 use std::io::Write;
 use std::path::{Path,PathBuf};
-use crate::structopt::StructOpt;
 
 #[derive(StructOpt)]
 #[structopt(about="Recursively get images")]
@@ -24,6 +25,10 @@ struct CLIArguments {
                 help="Escape paths")]
     quote: bool,
 
+    #[structopt(short, long, value_name="EXT",
+                help="File extensions to filter for (default: jpg jpeg png webp gif heic tiff dpx exr svg)")]
+    extensions: Vec<String>,
+
     #[structopt(value_name="TARGET",
                 help="Target files and directories (recursive)\n  If none specified, current working directory is implied")]
     targets: Vec<String>,
@@ -38,13 +43,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
         args
     };
 
+    let valid_extensions: HashSet<&str> = if args.extensions.is_empty() {
+        ["jpg", "jpeg", "png", "webp", "gif", "heic", "tiff", "dpx", "exr", "svg"].into_iter().collect()
+    } else {
+        args.extensions.iter().map(|s| s.as_str()).collect()
+    };
+
     let mut registry: Vec<PathBuf> = Vec::new();
 
     args.targets.into_iter().map(|target| Path::new(&target).to_path_buf() ).for_each(
         |path| if path.is_file() {
-            register_file_if_image(&mut registry, path);
+            register_file_if_image(&mut registry, path, &valid_extensions);
         } else if path.is_dir() {
-            register_dir(&mut registry, path, args.dohidden);
+            register_dir(&mut registry, path, &valid_extensions, args.dohidden);
         }
     );
 
@@ -70,13 +81,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
     Ok(())
 }
 
-fn register_file_if_image(registry: &mut Vec<PathBuf>, path: PathBuf) {
-    let image_extensions: std::collections::HashSet<&str> = ["jpg", "jpeg", "png", "webp", "gif", "heic", "tiff", "dpx", "exr", "svg"].into_iter().collect();
-
+fn register_file_if_image(registry: &mut Vec<PathBuf>, path: PathBuf, valid_extensions: &HashSet<&str>) {
     if let Some(osstr_ext) = path.extension() {
         match osstr_ext.to_str() {
             Some(ext) => {
-                if image_extensions.contains(ext) {
+                if valid_extensions.contains(ext) {
                     registry.push(path);
                 }
             },
@@ -89,7 +98,7 @@ fn register_file_if_image(registry: &mut Vec<PathBuf>, path: PathBuf) {
     }
 }
 
-fn register_dir(registry: &mut Vec<PathBuf>, path: PathBuf, dohidden: bool) {
+fn register_dir(registry: &mut Vec<PathBuf>, path: PathBuf, valid_extensions: &HashSet<&str>, dohidden: bool) {
     if let Ok(entries) = std::fs::read_dir(path) {
         for path in entries.filter_map(|e| e.ok() ).map(|e| e.path() ) {
             if !dohidden && path.file_name().map(|name| name.to_string_lossy().starts_with('.')).unwrap_or(false) {
@@ -100,9 +109,9 @@ fn register_dir(registry: &mut Vec<PathBuf>, path: PathBuf, dohidden: bool) {
                     continue
                 }
                 if path.is_file() {
-                    register_file_if_image(registry, path);
+                    register_file_if_image(registry, path, valid_extensions);
                 } else if path.is_dir() {
-                    register_dir(registry, path, dohidden);
+                    register_dir(registry, path, valid_extensions, dohidden);
                 }
             }
         }
