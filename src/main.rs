@@ -75,10 +75,10 @@ impl<'a> Registry<'a> {
 
     pub fn write_all(&self, writer: &mut impl Write, separator_null: bool, quote: bool) -> std::io::Result<()> {
         if separator_null {
-            if quote { for (_,file) in &self.registry { write!(writer, "{}\0", shlex::quote(&file.to_string_lossy()))?; } }
+            if quote { for (_,file) in &self.registry { write!(writer, "{}\0", shlex::try_quote(&file.to_string_lossy()).unwrap())?; } }
             else     { for (_,file) in &self.registry { write!(writer, "{}\0",              &file.to_string_lossy() )?;  } }
         } else {
-            if quote { for (_,file) in &self.registry { writeln!(writer, "{}", shlex::quote(&file.to_string_lossy()))?; } }
+            if quote { for (_,file) in &self.registry { writeln!(writer, "{}", shlex::try_quote(&file.to_string_lossy()).unwrap())?; } }
             else     { for (_,file) in &self.registry { writeln!(writer, "{}",              &file.to_string_lossy() )?;  } }
         }
         Ok(())
@@ -112,8 +112,8 @@ impl<'a> Registry<'a> {
                 },
                 None => eprintln!(
                     "Cannot read non-utf-8 file extension: {} on {}",
-                    shlex::quote(&osstr_ext.to_string_lossy()),
-                    shlex::quote(&path.to_string_lossy())
+                    shlex::try_quote(&osstr_ext.to_string_lossy()).unwrap(),
+                    shlex::try_quote(&path.to_string_lossy()).unwrap()
                 )
             }
         }
