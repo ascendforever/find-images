@@ -6,6 +6,8 @@ use std::collections::HashSet;
 use std::io::Write;
 use std::path::{Path,PathBuf};
 
+
+
 #[derive(StructOpt)]
 #[structopt(about="Recursively get images")]
 struct CLIArguments {
@@ -33,6 +35,8 @@ struct CLIArguments {
                 help="Target files and directories (recursive)\n  If none specified, current working directory is implied")]
     targets: Vec<String>,
 }
+
+
 
 fn main() -> Result<(), Box<dyn std::error::Error>>{
     let args = {
@@ -64,8 +68,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
     Ok(())
 }
 
+
+
 struct Registry<'a> {
-    registry: Vec<(std::fs::Metadata,PathBuf)>,
+    registry: Vec<(std::fs::Metadata, PathBuf)>,
     valid_extensions: HashSet<&'a str>
 }
 impl<'a> Registry<'a> {
@@ -76,10 +82,10 @@ impl<'a> Registry<'a> {
     pub fn write_all(&self, writer: &mut impl Write, separator_null: bool, quote: bool) -> std::io::Result<()> {
         if separator_null {
             if quote { for (_,file) in &self.registry { write!(writer, "{}\0", shlex::try_quote(&file.to_string_lossy()).unwrap())?; } }
-            else     { for (_,file) in &self.registry { write!(writer, "{}\0",              &file.to_string_lossy() )?;  } }
+            else     { for (_,file) in &self.registry { write!(writer, "{}\0",                  &file.to_string_lossy()          )?; } }
         } else {
             if quote { for (_,file) in &self.registry { writeln!(writer, "{}", shlex::try_quote(&file.to_string_lossy()).unwrap())?; } }
-            else     { for (_,file) in &self.registry { writeln!(writer, "{}",              &file.to_string_lossy() )?;  } }
+            else     { for (_,file) in &self.registry { writeln!(writer, "{}",                  &file.to_string_lossy()          )?; } }
         }
         Ok(())
     }
@@ -108,7 +114,7 @@ impl<'a> Registry<'a> {
         if let Some(osstr_ext) = path.extension() {
             match osstr_ext.to_str() {
                 Some(ext) => if self.valid_extensions.contains(ext) {
-                    self.registry.push((metadata,path));
+                    self.registry.push((metadata, path));
                 },
                 None => eprintln!(
                     "Cannot read non-utf-8 file extension: {} on {}",
