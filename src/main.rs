@@ -5,6 +5,7 @@ use crate::structopt::StructOpt;
 use std::collections::HashSet;
 use std::io::Write;
 use std::path::{Path,PathBuf};
+use std::os::unix::ffi::OsStrExt;
 
 
 
@@ -80,13 +81,18 @@ impl<'a> Registry<'a> {
     }
 
     pub fn write_all(&self, writer: &mut impl Write, separator_null: bool, quote: bool) -> std::io::Result<()> {
-        if separator_null {
-            if quote { for (_,file) in &self.registry { write!(writer, "{}\0", shlex::try_quote(&file.to_string_lossy()).unwrap())?; } }
-            else     { for (_,file) in &self.registry { write!(writer, "{}\0",                  &file.to_string_lossy()          )?; } }
+        let sep = if separator_null {
+            '\0'
         } else {
-            if quote { for (_,file) in &self.registry { writeln!(writer, "{}", shlex::try_quote(&file.to_string_lossy()).unwrap())?; } }
-            else     { for (_,file) in &self.registry { writeln!(writer, "{}",                  &file.to_string_lossy()          )?; } }
-        }
+            '\n'
+        };
+        if quote { for (_,file) in &self.registry {
+            writer.write_all(&shlex::bytes::try_quote(&file.as_os_str().as_bytes()).unwrap())?;
+        } }
+        else     { for (_,file) in &self.registry {
+            writer.write_all(file.as_os_str().as_bytes())?;
+        } }
+        write!(writer, "{}", sep)?;
         Ok(())
     }
 
@@ -119,7 +125,7 @@ impl<'a> Registry<'a> {
                 None => eprintln!(
                     "Cannot read non-utf-8 file extension: {} on {}",
                     shlex::try_quote(&osstr_ext.to_string_lossy()).unwrap(),
-                    shlex::try_quote(&path.to_string_lossy()).unwrap()
+                    shlex::try_quote(&path.to_string_lossy()).unwrap(),
                 )
             }
         }
