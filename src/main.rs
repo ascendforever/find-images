@@ -81,11 +81,7 @@ impl<'a> Registry<'a> {
     }
 
     pub fn write_all(&self, writer: &mut impl Write, separator_null: bool, quote: bool) -> std::io::Result<()> {
-        let sep = if separator_null {
-            '\0'
-        } else {
-            '\n'
-        };
+        let sep = if separator_null { '\0' } else { '\n' };
         if quote { for (_,file) in &self.registry {
             writer.write_all(&shlex::bytes::try_quote(&file.as_os_str().as_bytes()).unwrap())?;
         } }
