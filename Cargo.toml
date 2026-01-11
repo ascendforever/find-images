@@ -1,9 +1,14 @@
 [package]
 name = "find-images"
 version = "0.1.2"
-edition = "2021"
+edition = "2024"
+description = "Find images"
+authors = ["George H <georgeh124v2@gmail.com>"]
+repository = "https://git.ascendforever.com/ascendforever/find-images"
+license = "GPL-3.0-or-later"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+lto = true
 
 [dependencies]
 chrono = "0.4"
