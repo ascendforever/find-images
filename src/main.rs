@@ -4,7 +4,7 @@ extern crate structopt;
 use crate::structopt::StructOpt;
 use std::collections::HashSet;
 use std::io::Write;
-use std::path::{Path,PathBuf};
+use std::path::PathBuf;
 use std::os::unix::ffi::OsStrExt;
 
 
@@ -12,28 +12,30 @@ use std::os::unix::ffi::OsStrExt;
 #[derive(StructOpt)]
 #[structopt(about="Recursively get images")]
 struct CLIArguments {
-    #[structopt(short="a", long="all",
-                help="Enable processing of hidden subfiles/directories of targets")]
+    #[structopt(short="a", long="all", help=concat!(
+        "Enable processing of hidden subfiles/directories of targets"))]
     dohidden: bool,
 
-    #[structopt(short="n", long,
-                help="Disable sorting by last modified time")]
+    #[structopt(short="n", long, help=concat!(
+        "Disable sorting by last modified time"))]
     no_sort: bool,
 
-    #[structopt(short="0", long,
-                help="Use null as separator, not newline")]
+    #[structopt(short="0", long, help=concat!(
+        "Use null as separator, not newline"))]
     null: bool,
 
-    #[structopt(long,
-                help="Escape paths")]
+    #[structopt(long, help=concat!(
+        "Escape paths"))]
     quote: bool,
 
     #[structopt(short, long, value_name="EXT",
-                help="File extensions to filter for (default: dpx exr gif heic jpeg jpg png svg tiff webp)")]
+        default_value="dpx exr gif heic jpeg jpg png svg tiff webp", help=concat!(
+        "File extensions to filter for"))]
     extensions: Vec<String>,
 
-    #[structopt(value_name="TARGET",
-                help="Target files and directories (recursive)\n  If none specified, current working directory is implied")]
+    #[structopt(value_name="TARGET", help=concat!(
+        "Target files and directories (recursive)\n",
+        "  If none specified, current working directory is implied"))]
     targets: Vec<String>,
 }
 
@@ -48,22 +50,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
         args
     };
 
-    let valid_extensions: HashSet<&str> = if args.extensions.is_empty() {
-        ["dpx", "exr", "gif", "heic", "jpeg", "jpg", "png", "svg", "tiff", "webp"].into_iter().collect()
-    } else {
-        args.extensions.iter().map(|s| s.as_str()).collect()
-    };
+    let valid_extensions: HashSet<&str> = args.extensions.iter().map(|s| s.as_str()).collect();
 
     let mut registry = Registry::new(valid_extensions);
 
-    registry.populate(args.targets.into_iter().map(|target| Path::new(&target).to_path_buf() ), args.dohidden);
+    registry.populate(
+        args.targets.into_iter().map(
+            |target| PathBuf::from(&target)
+        ),
+        args.dohidden
+    );
 
     if !args.no_sort {
         registry.sort_by_modified();
     }
 
-    let stdout = std::io::stdout();
-    let mut stdout_buffer = std::io::BufWriter::new(stdout.lock());
+    let mut stdout_buffer = std::io::BufWriter::new(std::io::stdout().lock());
     registry.write_all(&mut stdout_buffer, args.null, args.quote)?;
 
     Ok(())
@@ -83,11 +85,10 @@ impl<'a> Registry<'a> {
     pub fn write_all(&self, writer: &mut impl Write, separator_null: bool, quote: bool) -> std::io::Result<()> {
         let sep = if separator_null { '\0' } else { '\n' };
         for (_, file) in &self.registry {
-            if quote {
-                writer.write_all(&shlex::bytes::try_quote(&file.as_os_str().as_bytes()).unwrap())?;
-            } else {
-                writer.write_all(file.as_os_str().as_bytes())?;
-            }
+            match quote {
+                true => writer.write_all(&shlex::bytes::try_quote(&file.as_os_str().as_bytes()).unwrap())?,
+                false => writer.write_all(file.as_os_str().as_bytes())?,
+            };
             write!(writer, "{}", sep)?;
         }
         Ok(())
@@ -131,7 +132,9 @@ impl<'a> Registry<'a> {
     fn add_dir(&mut self, path: PathBuf, dohidden: bool) {
         if let Ok(entries) = std::fs::read_dir(path) {
             for path in entries.filter_map(|e| e.ok() ).map(|e| e.path() ) {
-                if !dohidden && path.file_name().map(|name| name.to_string_lossy().starts_with('.')).unwrap_or(true) { // this unwraps to None if the file_name is .. or is root / (neither of which would happen in this scenario)
+                // unwrap below is safe because it is only None if the file_name is .. or is root /
+                //   (neither of which would happen in this scenario)
+                if !dohidden && path.file_name().map(|name| name.to_string_lossy().starts_with('.')).unwrap_or(true) {
                     continue
                 }
                 if let Ok(metadata) = std::fs::symlink_metadata(&path) {
