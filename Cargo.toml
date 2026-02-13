@@ -1,6 +1,6 @@
 [package]
 name = "find-images"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 description = "Find images"
 authors = ["George H <georgeh124v2@gmail.com>"]
@@ -13,4 +13,4 @@ lto = true
 [dependencies]
 chrono = "0.4"
 shlex = "1.3"
-structopt = "0.3"
+clap = { version = "4.5", features = ["derive"] }
