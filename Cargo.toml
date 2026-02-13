@@ -9,6 +9,9 @@ license = "GPL-3.0-or-later"
 
 [profile.release]
 lto = true
+codegen-units = 4
+strip = "debuginfo"
+overflow-checks = true
 
 [dependencies]
 chrono = "0.4"
