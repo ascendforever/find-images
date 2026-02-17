@@ -7,6 +7,18 @@ authors = ["George H <georgeh124v2@gmail.com>"]
 repository = "https://git.ascendforever.com/ascendforever/find-images"
 license = "GPL-3.0-or-later"
 
+[package.metadata.deb]
+maintainer = "George H <georgeh124v2@gmail.com>"
+depends = "$auto"
+section = "utils"
+priority = "optional"
+assets = [
+    ["target/release/find-images", "usr/bin/", "755"],
+    ["README.md", "usr/share/doc/find-images/README.md", "644"],
+    ["LICENSE", "usr/share/doc/find-images/copyright", "644"]
+]
+
+
 [profile.release]
 lto = true
 codegen-units = 4
