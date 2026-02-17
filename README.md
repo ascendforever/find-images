@@ -80,7 +80,7 @@ printf 'deb [signed-by=/usr/share/keyrings/ascendforever.gpg] https://deb.ascend
 ```
 Or onion:
 ```bash
-printf 'deb [signed-by=/usr/share/keyrings/ascendforever.gpg] http://csjkrevghycpr6b266bk2hrgfotoxsz7xbyfk6rkk63fxlbkbes7b7qd.onion %s main' trixie | sudo tee /etc/apt/sources.list.d/ascendforever.list
+printf 'deb [signed-by=/usr/share/keyrings/ascendforever.gpg] tor+http://csjkrevghycpr6b266bk2hrgfotoxsz7xbyfk6rkk63fxlbkbes7b7qd.onion %s main' trixie | sudo tee /etc/apt/sources.list.d/ascendforever.list
 ```
 
 #### Install
