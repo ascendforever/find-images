@@ -51,39 +51,9 @@ Obtain non-image files by giving any extensions to `--extensions`
 
 ## Install
 
-
-### Cargo package
-```bash
-cargo install find-images
-```
-
-
-### Debian package
-Debian packages are available for stable and oldstable releases.
-
-#### Install the signing key
-Clearnet:
-```bash
-curl https://deb.ascendforever.com/ascendforever.gpg | sudo tee /usr/share/keyrings/ascendforever.gpg >/dev/null
-```
-Or onion:
-```bash
-curl http://csjkrevghycpr6b266bk2hrgfotoxsz7xbyfk6rkk63fxlbkbes7b7qd.onion | sudo tee /usr/share/keyrings/ascendforever.gpg >/dev/null
-```
-
-#### Add repository
-Change `trixie` -> `bookworm` if needed.
-
-Clearnet:
-```bash
-printf 'deb [signed-by=/usr/share/keyrings/ascendforever.gpg] https://deb.ascendforever.com %s main' trixie | sudo tee /etc/apt/sources.list.d/ascendforever.list
-```
-Or onion:
-```bash
-printf 'deb [signed-by=/usr/share/keyrings/ascendforever.gpg] tor+http://csjkrevghycpr6b266bk2hrgfotoxsz7xbyfk6rkk63fxlbkbes7b7qd.onion %s main' trixie | sudo tee /etc/apt/sources.list.d/ascendforever.list
-```
-
-#### Install
-```bash
-sudo apt install -y find-images
-```
+Debian and Fedora packages are available.
+See [AscendForever/repos](https://ascendforever.com/repos)
+    [[secure]](https://secure.ascendforever.com/repos)
+    [[tor]](http://zuh3vfagsxufncxiyhrsu4wbcihjdexzvsvm2zoxtypiqjh7nvtdkkqd.onion/repos)
+    [[i2p]](http://xryyir2gvnjhdxlsjx2ajdqps4p3yxh5tczboumrizagd4tavwcq.b32.i2p/repos)
+    for instructions.
